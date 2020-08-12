@@ -361,10 +361,11 @@ class RuleCollection(object):
         return sum([self._applyRule(drawgraph, rule, halves) for rule in self.push], []), \
                list(filter(lambda x: x.unplaced and not x.unmatched, self.inriff))
 
-    def go(self, inriff, drawGraph=False, zigzaglimit=6, zigzagtarget=7, echomargin=9, maxnotes=17):
+    def go(self, inriff, drawGraph=False, zigzaglimit=6, zigzagtarget=7, echomargin=9, maxnotes=17, minnotes=9):
         inhilation, inremains, outnotes, outremains, result, slidelist = self._assemble(drawGraph, inriff)
         [self._writenotes(result, rhythm, slidelist, targ) for targ, rhythm, nl in outnotes]
-        [result.append(slider) for slider in slidelist]
+        if len(result) < minnotes:
+            [result.append(slider) for slider in slidelist]
         notesequence = self._improve(result, zigzaglimit, zigzagtarget, 'countZigZags')
         self.notedict = dict([(note.thirtytwo, note) for note in notesequence])
         notesequence = self._improve(result, echomargin, echomargin, 'countEch')
@@ -843,7 +844,6 @@ def collection(infile):
         Black(PitchSource('VI', {3, 19}), TimeTarget(21)),
         Black(PitchSource('bVII', {3, 19}), TimeTarget(21)),
         Black(PitchSource('VII', {3, 19}), TimeTarget(21)),
-        Black(PitchSource('I+', {2, 18}), TimeTarget(20)),
         Black(PitchSource('I+', {1, 17}), TimeTarget(19)),
         Black(PitchSource('bII', {1, 17}), TimeTarget(19)),
         Black(PitchSource('II', {1, 17}), TimeTarget(19)),
@@ -857,29 +857,19 @@ def collection(infile):
         Black(PitchSource('bVII', {1, 17}), TimeTarget(19)),
         Black(PitchSource('VII', {1, 17}), TimeTarget(19)),
         Black(PitchSource('I-', {1, 17}), TimeTarget(19)),
-        Black(PitchSource('I', {2, 18}), TimeTarget(20)),
         Black(PitchSource('I', {1, 17}), TimeTarget(19)),
         Black(PitchSource('I-', {5, 21}), TimeTarget(23)),
         Black(PitchSource('I', {5, 21}), TimeTarget(23)),
         Black(PitchSource('I+', {5, 21}), TimeTarget(23)),
-        Black(PitchSource('I', {6, 22}), TimeTarget(24)),
-        Black(PitchSource('I+', {6, 22}), TimeTarget(24)),
         Black(PitchSource('I', {7, 23}), TimeTarget(25)),
         Black(PitchSource('I-', {7, 23}), TimeTarget(25)),
         Black(PitchSource('I+', {7, 23}), TimeTarget(25)),
-        Black(PitchSource('I', {8, 24}), TimeTarget(26)),
         Black(PitchSource('I-', {7, 23}), TimeTarget(25)),
         Black(PitchSource('I+', {7, 23}), TimeTarget(25)),
         Black(PitchSource('I', {9, 25}), TimeTarget(27)),
         Black(PitchSource('I-', {9, 25}), TimeTarget(27)),
-        Black(PitchSource('I', {10, 26}), TimeTarget(28)),
-        Black(PitchSource('I-', {10, 26}), TimeTarget(28)),
-        Black(PitchSource('I+', {10, 26}), TimeTarget(28)),
         Black(PitchSource('I-', {11, 27}), TimeTarget(29)),
         Black(PitchSource('I+', {11, 27}), TimeTarget(29)),
-        Black(PitchSource('I', {12, 28}), TimeTarget(30)),
-        Black(PitchSource('I-', {12, 28}), TimeTarget(30)),
-        Black(PitchSource('I+', {12, 28}), TimeTarget(30)),
         Black(PitchSource('I', {13, 29}), TimeTarget(31)),
         Black(PitchSource('I', {11, 27}), TimeTarget(31)),
         Black(PitchSource('I+', {4, 20}), TimeTarget(1)),
@@ -892,7 +882,6 @@ def collection(infile):
         Black(PitchSource('II+', 13), TimeTarget({19, 27})),
         Black(PitchSource('II+', {11, 27}), TimeTarget(15)),
         Black(PitchSource('II', {11, 27}), TimeTarget(15)),
-        Black(PitchSource('II', {12, 28}), TimeTarget(16)),
         Black(PitchSource('II-', {13, 29}), TimeTarget(17)),
         Black(PitchSource('II', 23), TimeTarget(23)),
         Black(PitchSource('II', 29), TimeTarget({8, 24})),
@@ -914,7 +903,6 @@ def collection(infile):
         Black(PitchSource('V', 23), TimeTarget(3)),
         Black(PitchSource('V', {3, 8}), TimeTarget(11)),
         Black(PitchSource('V', 7), TimeTarget({3, 8, 19, 24})),
-        Black(PitchSource('V', {3, 11}), TimeTarget(28)),
         Black(PitchSource('bVII-'), TimeTarget({13, 29})),
         Black(PitchSource('III', {21, 23}), TimeTarget(5)),
         Black(PitchSource('bIII', 23), TimeTarget({3, 17, 19})),
