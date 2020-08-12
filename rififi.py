@@ -361,15 +361,25 @@ class RuleCollection(object):
         return sum([self._applyRule(drawgraph, rule, halves) for rule in self.push], []), \
                list(filter(lambda x: x.unplaced and not x.unmatched, self.inriff))
 
-    def go(self, inriff, drawGraph=False, zigzaglimit=6, zigzagtarget=7, echomargin=9):
+    def go(self, inriff, drawGraph=False, zigzaglimit=6, zigzagtarget=7, echomargin=9, maxnotes=17):
         inhilation, inremains, outnotes, outremains, result, slidelist = self._assemble(drawGraph, inriff)
         [self._writenotes(result, rhythm, slidelist, targ) for targ, rhythm, nl in outnotes]
         [result.append(slider) for slider in slidelist]
         notesequence = self._improve(result, zigzaglimit, zigzagtarget, 'countZigZags')
         self.notedict = dict([(note.thirtytwo, note) for note in notesequence])
-        self._improve(result, echomargin, echomargin, 'countEch')
+        notesequence = self._improve(result, echomargin, echomargin, 'countEch')
+        self._fixLength(maxnotes, notesequence, result)
         [note.findend(result) for note in result]
         return result, inhilation, outnotes, inremains, outremains
+
+    def _fixLength(self, maxnotes, notesequence, result):
+        if (1 not in self.notedict) and (3 not in self.notedict):
+            result.append(Note(1, 'I', self.secsperthirty))
+            result.append(Note(3, 'I', self.secsperthirty))
+        if len(notesequence) > maxnotes:
+            for note in notesequence:
+                if (note.thirtytwo % 2) == 0:
+                    result.remove(note)
 
     def countEch(self, notesequence):
         echocount = 0
@@ -1024,4 +1034,4 @@ if __name__ == '__main__':
                         help='draw a graphviz graph of rules applied')
     args = vars(parser.parse_args())
     fromFile(args['inputfilename'], args['outputfilename'], args['graph'])
-    #fromFile('test2.mid', 'out.mid', debug=True)
+    #fromFile('test1.mid', 'out.mid', debug=True)
