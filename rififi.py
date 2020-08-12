@@ -1,9 +1,7 @@
 import pretty_midi, argparse
-from pretty_midi import KeySignature
 from places import tonic, positions, notenumbers, highest
 from graphviz import Digraph
-
-
+from operator import attrgetter
 
 
 def findtempo(midifilename, minimumintempo=20.0):
@@ -38,8 +36,11 @@ class Note(object):
     def reset(self):
         self.unmatched = True
         self.unplaced = True
-        self.notenumber = notenumbers[self.pitch]
         self.end = None
+
+    def _getnotenumber(self):
+        return notenumbers[self.pitch]
+    notenumber = property(_getnotenumber)
 
     def findend(self, noteList):
         leastDiff = 100000000
@@ -360,12 +361,76 @@ class RuleCollection(object):
         return sum([self._applyRule(drawgraph, rule, halves) for rule in self.push], []), \
                list(filter(lambda x: x.unplaced and not x.unmatched, self.inriff))
 
-    def go(self, inriff, drawGraph=False):
+    def go(self, inriff, drawGraph=False, zigzaglimit=6, zigzagtarget=7, echomargin=9):
         inhilation, inremains, outnotes, outremains, result, slidelist = self._assemble(drawGraph, inriff)
         [self._writenotes(result, rhythm, slidelist, targ) for targ, rhythm, nl in outnotes]
         [result.append(slider) for slider in slidelist]
+        notesequence = self._improve(result, zigzaglimit, zigzagtarget, 'countZigZags')
+        self.notedict = dict([(note.thirtytwo, note) for note in notesequence])
+        self._improve(result, echomargin, echomargin, 'countEch')
         [note.findend(result) for note in result]
         return result, inhilation, outnotes, inremains, outremains
+
+    def countEch(self, notesequence):
+        echocount = 0
+        for note in notesequence:
+            if note.thirtytwo > 16:
+                break
+            echo = note.thirtytwo + 16
+            if echo in self.notedict:
+                if note.pitch == self.notedict[echo].pitch:
+                    echocount += 1
+        return len(notesequence) - echocount
+
+    def _improve(self, result, featurelimit, featuretarget, method):
+        result = sorted(result, key=attrgetter('thirtytwo'))
+        featurecount = getattr(self, method)(result)
+        if featurecount > featurelimit:
+            improvement = True
+            newcount = featurecount
+            lastcount = featurecount
+            self._searchForImprovement(featuretarget, improvement, lastcount, method, newcount, result)
+        return result
+
+    def _searchForImprovement(self, featuretarget, improvement, lastcount, method, newcount, result):
+        while improvement:
+            improvement = False
+            for n, a in enumerate(result):
+                for b in result[n + 1:]:
+                    if a.pitch != b.pitch:
+                        RuleCollection.swapPitches(a, b)
+                        newcount = getattr(self, method)(result)
+                        if newcount < lastcount:
+                            improvement = True
+                            break
+                        RuleCollection.swapPitches(a, b)
+                if newcount <= featuretarget:
+                    break
+            if newcount <= featuretarget:
+                break
+            lastcount = newcount
+
+    @staticmethod
+    def swapPitches(a, b):
+        apitch = a.pitch
+        a.pitch = b.pitch
+        b.pitch = apitch
+
+    def countZigZags(self, sequence):
+        lastp = sequence[0].notenumber
+        lastdir = 0
+        result = 0
+        for note in sequence[1:]:
+            if note.notenumber > lastp:
+                if lastdir == -1:
+                    result += 1
+                lastdir = 1
+            elif note.notenumber < lastp:
+                if lastdir == 1:
+                    result += 1
+                lastdir = -1
+            lastp = note.notenumber
+        return result
 
     def fullGraph(self, title='all rules'):
         dot = RuleCollection._startGraph(title)
@@ -959,3 +1024,4 @@ if __name__ == '__main__':
                         help='draw a graphviz graph of rules applied')
     args = vars(parser.parse_args())
     fromFile(args['inputfilename'], args['outputfilename'], args['graph'])
+    #fromFile('test2.mid', 'out.mid', debug=True)
